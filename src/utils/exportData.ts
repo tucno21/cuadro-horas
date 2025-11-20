@@ -1,4 +1,5 @@
 import { docentes, areasCurriculares, grados } from '../store/asignacionStore';
+import * as XLSX from 'xlsx';
 
 export interface ExportData {
     fechaExportacion: string;
@@ -115,74 +116,122 @@ export const exportarCSV = (data: ExportData): void => {
 };
 
 export const exportarExcel = async (data: ExportData): Promise<void> => {
-    // Crear contenido HTML para Excel
-    const tableContent = `
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <style>
-                table { border-collapse: collapse; width: 100%; }
-                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                th { background-color: #f2f2f2; font-weight: bold; }
-                .header { background-color: #4CAF50; color: white; text-align: center; }
-                .resumen { background-color: #e8f5e8; font-weight: bold; }
-            </style>
-        </head>
-        <body>
-            <h1>Reporte de Asignación de Horas</h1>
-            <p><strong>Fecha de Exportación:</strong> ${data.fechaExportacion}</p>
-            
-            <h2>Resumen General</h2>
-            <table>
-                <tr class="header">
-                    <th>Métrica</th>
-                    <th>Valor</th>
-                </tr>
-                <tr>
-                    <td>Total de Horas Asignadas</td>
-                    <td>${data.resumen.totalHoras}</td>
-                </tr>
-                <tr>
-                    <td>Total de Docentes Activos</td>
-                    <td>${data.resumen.totalDocentes}</td>
-                </tr>
-                ${Object.entries(data.resumen.horasPorNivel).map(([nivel, horas]) =>
-        `<tr><td>Total Nivel ${nivel}</td><td>${horas}</td></tr>`
-    ).join('')}
-            </table>
+    // Crear workbook
+    const wb = XLSX.utils.book_new();
 
-            <h2>Detalle de Asignaciones</h2>
-            <table>
-                <tr class="header">
-                    <th>Docente</th>
-                    <th>Nivel</th>
-                    <th>Área</th>
-                    <th>Grado</th>
-                    <th>Horas</th>
-                    <th>Total Docente</th>
-                </tr>
-                ${data.docentes.flatMap(docente =>
-        docente.asignaciones.map((asignacion, index) => `
-                        <tr>
-                            <td>${index === 0 ? docente.nombre : ''}</td>
-                            <td>${index === 0 ? `Nivel ${docente.nivel}` : ''}</td>
-                            <td>${asignacion.area}</td>
-                            <td>${asignacion.grado}</td>
-                            <td>${asignacion.horas}</td>
-                            <td>${index === 0 ? docente.totalHoras : ''}</td>
-                        </tr>
-                    `).join('')
-    ).join('')}
-            </table>
-        </body>
-        </html>
-    `;
+    // Hoja 1: Resumen General
+    const resumenData: (string | number)[][] = [
+        ['Reporte de Asignación de Horas'],
+        [`Fecha de Exportación: ${data.fechaExportacion}`],
+        [],
+        ['Resumen General'],
+        ['Métrica', 'Valor'],
+        ['Total de Horas Asignadas', data.resumen.totalHoras],
+        ['Total de Docentes Activos', data.resumen.totalDocentes],
+        ...Object.entries(data.resumen.horasPorNivel).map(([nivel, horas]) => [
+            `Total Nivel ${nivel}`, String(horas)
+        ])
+    ];
 
-    const blob = new Blob([tableContent], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    const wsResumen = XLSX.utils.aoa_to_sheet(resumenData);
+
+    // Estilos para el encabezado del resumen
+    const headerStyle = {
+        font: { bold: true, sz: 14 },
+        fill: { fgColor: { rgb: "4CAF50" } },
+        alignment: { horizontal: "center" }
+    };
+
+    // Aplicar estilos básicos
+    const rangeResumen = XLSX.utils.decode_range(wsResumen['!ref'] || 'A1:B1');
+    for (let i = rangeResumen.s.r; i <= rangeResumen.e.r; i++) {
+        for (let j = rangeResumen.s.c; j <= rangeResumen.e.c; j++) {
+            const cellAddress = XLSX.utils.encode_cell({ r: i, c: j });
+            if (wsResumen[cellAddress]) {
+                if (i === 3) { // Fila de encabezado
+                    wsResumen[cellAddress].s = headerStyle;
+                }
+                if (i === 0) { // Título principal
+                    wsResumen[cellAddress].s = {
+                        font: { bold: true, sz: 16 },
+                        alignment: { horizontal: "center" }
+                    };
+                }
+            }
+        }
+    }
+
+    XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen');
+
+    // Hoja 2: Detalle de Asignaciones
+    const detalleData: (string | number)[][] = [
+        ['Detalle de Asignaciones'],
+        [],
+        ['Docente', 'Nivel', 'Área', 'Grado', 'Horas', 'Total Docente']
+    ];
+
+    data.docentes.forEach(docente => {
+        docente.asignaciones.forEach((asignacion, index) => {
+            detalleData.push([
+                index === 0 ? docente.nombre : '',
+                index === 0 ? `Nivel ${docente.nivel}` : '',
+                asignacion.area,
+                asignacion.grado,
+                asignacion.horas,
+                index === 0 ? docente.totalHoras : ''
+            ]);
+        });
+    });
+
+    const wsDetalle = XLSX.utils.aoa_to_sheet(detalleData);
+
+    // Aplicar estilos a la hoja de detalle
+    const rangeDetalle = XLSX.utils.decode_range(wsDetalle['!ref'] || 'A1:F1');
+    for (let i = rangeDetalle.s.r; i <= rangeDetalle.e.r; i++) {
+        for (let j = rangeDetalle.s.c; j <= rangeDetalle.e.c; j++) {
+            const cellAddress = XLSX.utils.encode_cell({ r: i, c: j });
+            if (wsDetalle[cellAddress]) {
+                if (i === 2) { // Fila de encabezado
+                    wsDetalle[cellAddress].s = headerStyle;
+                }
+                if (i === 0) { // Título principal
+                    wsDetalle[cellAddress].s = {
+                        font: { bold: true, sz: 16 },
+                        alignment: { horizontal: "center" }
+                    };
+                }
+            }
+        }
+    }
+
+    // Ajustar anchos de columna
+    const colWidths = [
+        { wch: 30 }, // Docente
+        { wch: 12 }, // Nivel
+        { wch: 25 }, // Área
+        { wch: 10 }, // Grado
+        { wch: 8 },  // Horas
+        { wch: 12 }  // Total Docente
+    ];
+    wsDetalle['!cols'] = colWidths;
+
+    XLSX.utils.book_append_sheet(wb, wsDetalle, 'Detalle');
+
+    // Generar y descargar el archivo
+    const excelBuffer = XLSX.write(wb, {
+        bookType: 'xlsx',
+        type: 'array',
+        cellStyles: true
+    });
+
+    const blob = new Blob([excelBuffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    });
+
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `asignacion_horas_${new Date().toISOString().split('T')[0]}.xls`;
+    link.download = `asignacion_horas_${new Date().toISOString().split('T')[0]}.xlsx`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
