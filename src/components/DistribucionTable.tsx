@@ -4,6 +4,7 @@ import { useAsignacionStore, areasCurriculares, grados, getDocenteColor, getDoce
 const DistribucionTable: React.FC = () => {
     const { docenteSeleccionado, asignaciones, toggleAsignacion } = useAsignacionStore();
     const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; areaId: string; gradoId: string; docenteActual: string } | null>(null);
+    const [tooltip, setTooltip] = useState<{ show: boolean; x: number; y: number; docenteId: string } | null>(null);
 
     const handleCellClick = (areaId: string, gradoId: string) => {
         if (!docenteSeleccionado) return;
@@ -34,6 +35,20 @@ const DistribucionTable: React.FC = () => {
 
     const handleCancelReassign = () => {
         setConfirmDialog(null);
+    };
+
+    const handleMouseEnter = (e: React.MouseEvent, docenteId: string) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        setTooltip({
+            show: true,
+            x: rect.left + rect.width / 2,
+            y: rect.top - 10,
+            docenteId,
+        });
+    };
+
+    const handleMouseLeave = () => {
+        setTooltip(null);
     };
 
     const getCellStyle = (areaId: string, gradoId: string) => {
@@ -123,7 +138,9 @@ const DistribucionTable: React.FC = () => {
                                             <td
                                                 key={grado.id}
                                                 onClick={() => handleCellClick(area.id, grado.id)}
-                                                className="border border-gray-300 px-1 py-1 text-center text-xs font-medium transition-all duration-200 hover:shadow-sm"
+                                                onMouseEnter={asignacionActual ? (e) => handleMouseEnter(e, asignacionActual) : undefined}
+                                                onMouseLeave={asignacionActual ? handleMouseLeave : undefined}
+                                                className="border border-gray-300 px-1 py-1 text-center text-xs font-medium transition-all duration-200 hover:shadow-sm relative"
                                                 style={getCellStyle(area.id, grado.id)}
                                             >
                                                 <div className="flex flex-col items-center justify-center h-8">
@@ -194,6 +211,22 @@ const DistribucionTable: React.FC = () => {
                                 Reasignar
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Tooltip */}
+            {tooltip && tooltip.show && (
+                <div
+                    className="fixed z-50 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-lg pointer-events-none transform -translate-x-1/2 -translate-y-full"
+                    style={{
+                        left: `${tooltip.x}px`,
+                        top: `${tooltip.y}px`,
+                    }}
+                >
+                    <div className="font-medium">{getDocenteNombre(tooltip.docenteId)}</div>
+                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full">
+                        <div className="border-4 border-transparent border-t-gray-900"></div>
                     </div>
                 </div>
             )}
