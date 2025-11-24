@@ -21,7 +21,7 @@ export const docentes = [
 
 export const areasCurriculares = [
     { id: 'mat', nombre: 'MAT', horas: 6 },
-    { id: 'com', nombre: 'COM', horas: 6 },
+    { id: 'com', nombre: 'COM', horas: 5 },
     { id: 'ing', nombre: 'Inglés', horas: 5 },
     { id: 'arte', nombre: 'Arte', horas: 2 },
     { id: 'cs', nombre: 'CCSS', horas: 4 },
