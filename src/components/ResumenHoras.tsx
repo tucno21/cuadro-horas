@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { useAsignacionStore, docentes, areasCurriculares, grados, getDocenteColor } from '../store/asignacionStore';
 
 const ResumenHoras: React.FC = () => {
-    const { horasPorDocente, asignaciones } = useAsignacionStore();
+    const { horasPorDocente, asignaciones, docenteSeleccionado } = useAsignacionStore();
 
     const resumenData = useMemo(() => {
         return docentes.map(docente => {
@@ -38,8 +38,19 @@ const ResumenHoras: React.FC = () => {
                 asignaciones: agrupadoPorArea,
             };
         }).filter(docente => docente.totalHoras > 0)
-            .sort((a, b) => b.totalHoras - a.totalHoras);
-    }, [horasPorDocente, asignaciones]);
+            .sort((a, b) => {
+                // Si el docente a es el seleccionado y b no, a va primero
+                if (docenteSeleccionado === a.id && docenteSeleccionado !== b.id) {
+                    return -1;
+                }
+                // Si el docente b es el seleccionado y a no, b va primero
+                if (docenteSeleccionado === b.id && docenteSeleccionado !== a.id) {
+                    return 1;
+                }
+                // Si ninguno es el seleccionado o ambos son (imposible), ordenar por horas totales
+                return b.totalHoras - a.totalHoras;
+            });
+    }, [horasPorDocente, asignaciones, docenteSeleccionado]);
 
     const totalGeneral = resumenData.reduce((sum, docente) => sum + docente.totalHoras, 0);
 
@@ -91,7 +102,10 @@ const ResumenHoras: React.FC = () => {
                             return (
                                 <div
                                     key={docente.id}
-                                    className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                                    className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${docenteSeleccionado === docente.id
+                                        ? 'ring-2 ring-blue-400 ring-offset-2 shadow-lg'
+                                        : ''
+                                        }`}
                                     style={{ borderColor: getDocenteColor(docente.id) }}
                                 >
                                     <div className="flex items-center justify-between mb-3">
@@ -101,9 +115,16 @@ const ResumenHoras: React.FC = () => {
                                                 style={{ backgroundColor: getDocenteColor(docente.id) }}
                                             />
                                             <div>
-                                                <p className="font-semibold text-gray-800 text-sm">
-                                                    {docente.nombre}
-                                                </p>
+                                                <div className="flex items-center space-x-2">
+                                                    <p className="font-semibold text-gray-800 text-sm">
+                                                        {docente.nombre}
+                                                    </p>
+                                                    {docenteSeleccionado === docente.id && (
+                                                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
+                                                            Seleccionado
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <p className="text-xs text-gray-500">Nivel {docente.nivel}</p>
                                             </div>
                                         </div>
