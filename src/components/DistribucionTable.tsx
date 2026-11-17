@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { useAsignacionStore, areasCurriculares, grados, getDocenteColor, getDocenteNombre } from '../store/asignacionStore';
+import { useAsignacionStore, areasCurriculares, getDocenteColor, getDocenteNombre, puedeAsignarArea } from '../store/asignacionStore';
+import GradosModal from './GradosModal';
 
 const DistribucionTable: React.FC = () => {
-    const { docenteSeleccionado, asignaciones, toggleAsignacion } = useAsignacionStore();
+    const { grados, docenteSeleccionado, asignaciones, toggleAsignacion } = useAsignacionStore();
     const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; areaId: string; gradoId: string; docenteActual: string } | null>(null);
     const [tooltip, setTooltip] = useState<{ show: boolean; x: number; y: number; docenteId: string } | null>(null);
+    const [mostrarGrados, setMostrarGrados] = useState(false);
 
     const handleCellClick = (areaId: string, gradoId: string) => {
         if (!docenteSeleccionado) return;
@@ -13,6 +15,9 @@ const DistribucionTable: React.FC = () => {
         const asignacionActual = asignaciones[key];
 
         if (asignacionActual && asignacionActual !== docenteSeleccionado) {
+            // Antes de pedir confirmación, validar que no se supere el máximo de horas
+            if (!puedeAsignarArea(docenteSeleccionado, areaId)) return;
+
             // Mostrar confirmación para reasignar
             setConfirmDialog({
                 open: true,
@@ -59,15 +64,18 @@ const DistribucionTable: React.FC = () => {
         if (!area) return {};
 
         let backgroundColor = 'white';
-        let textColor = 'text-gray-700';
-        let borderColor = 'border-gray-300';
+        let textColor = '#374151'; // gray-700
+        let borderColor = '#D1D5DB'; // gray-300
+        let borderWidth = '1px';
 
         if (asignacionActual) {
             backgroundColor = getDocenteColor(asignacionActual) + '20'; // 20% opacity
             borderColor = getDocenteColor(asignacionActual);
-            textColor = 'text-gray-900';
+            textColor = '#111827'; // gray-900
+            if (asignacionActual === docenteSeleccionado) {
+                borderWidth = '2px';
+            }
         }
-
         if (docenteSeleccionado && !asignacionActual) {
             backgroundColor = '#F3F4F6';
         }
@@ -76,20 +84,53 @@ const DistribucionTable: React.FC = () => {
             backgroundColor,
             color: textColor,
             borderColor,
+            borderWidth,
             cursor: docenteSeleccionado ? 'pointer' : 'default',
         };
     };
 
     return (
         <div className="bg-white rounded-lg shadow-lg p-5 h-full overflow-auto">
-            <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
-                <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                </svg>
-                Distribución de Horas
-            </h2>
+            <div className="mb-6 flex items-center justify-between gap-3">
+                <h2 className="flex items-center text-xl font-bold text-gray-800">
+                    <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    </svg>
+                    Distribución de Horas
+                </h2>
+                <button
+                    type="button"
+                    onClick={() => setMostrarGrados(true)}
+                    className="flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+                >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                    </svg>
+                    Grados
+                    <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[11px] font-semibold text-gray-600">
+                        {grados.length}
+                    </span>
+                </button>
+            </div>
 
-            {!docenteSeleccionado ? (
+            {grados.length === 0 ? (
+                <div className="flex h-64 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50">
+                    <div className="px-4 text-center">
+                        <svg className="mx-auto mb-3 h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                        </svg>
+                        <p className="font-medium text-gray-600">No hay grados ni secciones</p>
+                        <p className="mt-1 text-sm text-gray-500">Usa el botón «Grados» para agregar el primero</p>
+                        <button
+                            type="button"
+                            onClick={() => setMostrarGrados(true)}
+                            className="mt-3 rounded-lg bg-blue-500 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-600"
+                        >
+                            Agregar grados
+                        </button>
+                    </div>
+                </div>
+            ) : !docenteSeleccionado ? (
                 <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
                     <div className="text-center">
                         <svg className="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -140,17 +181,17 @@ const DistribucionTable: React.FC = () => {
                                                 onClick={() => handleCellClick(area.id, grado.id)}
                                                 onMouseEnter={asignacionActual ? (e) => handleMouseEnter(e, asignacionActual) : undefined}
                                                 onMouseLeave={asignacionActual ? handleMouseLeave : undefined}
-                                                className="border border-gray-300 px-1 py-1 text-center text-xs font-medium transition-all duration-200 hover:shadow-sm relative"
+                                                className="border px-1 py-1 text-center text-xs font-medium transition-all duration-200 hover:shadow-sm"
                                                 style={getCellStyle(area.id, grado.id)}
                                             >
-                                                <div className="flex flex-col items-center justify-center h-8">
+                                                <div className="flex h-9 flex-col items-center justify-center gap-0.5">
                                                     {asignacionActual ? (
                                                         <>
                                                             <div
-                                                                className="w-3 h-3 rounded-full mb-1"
+                                                                className="h-2.5 w-2.5 rounded-full"
                                                                 style={{ backgroundColor: getDocenteColor(asignacionActual) }}
                                                             />
-                                                            <span className="text-xs font-semibold">
+                                                            <span className={`text-xs ${isAssignedToSelected ? 'font-bold' : ''}`}>
                                                                 {area.horas}h
                                                             </span>
                                                         </>
@@ -158,13 +199,6 @@ const DistribucionTable: React.FC = () => {
                                                         <span className="text-gray-400">—</span>
                                                     )}
                                                 </div>
-                                                {isAssignedToSelected && (
-                                                    <div className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full p-0.5">
-                                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                        </svg>
-                                                    </div>
-                                                )}
                                             </td>
                                         );
                                     })}
@@ -233,7 +267,10 @@ const DistribucionTable: React.FC = () => {
 
             <div className="mt-4 text-sm text-gray-500">
                 <p>💡 Tip: Las celdas asignadas al docente seleccionado tienen un borde más grueso y colorido</p>
+                <p className="mt-1">⏱️ Cada docente puede acumular como máximo 26 horas.</p>
             </div>
+
+            {mostrarGrados && <GradosModal onCerrar={() => setMostrarGrados(false)} />}
         </div>
     );
 };

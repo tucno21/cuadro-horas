@@ -1,15 +1,15 @@
 import React, { useMemo } from 'react';
-import { useAsignacionStore, docentes, areasCurriculares, grados, getDocenteColor } from '../store/asignacionStore';
+import { useAsignacionStore, areasCurriculares } from '../store/asignacionStore';
 
 const ResumenHoras: React.FC = () => {
-    const { horasPorDocente, asignaciones, docenteSeleccionado } = useAsignacionStore();
+    const { docentes, grados, horasPorDocente, asignaciones, docenteSeleccionado } = useAsignacionStore();
 
     const resumenData = useMemo(() => {
         return docentes.map(docente => {
             const totalHoras = horasPorDocente[docente.id] || 0;
             const asignacionesDocente = Object.entries(asignaciones)
-                .filter(([_, docenteId]) => docenteId === docente.id)
-                .map(([key, _]) => {
+                .filter(([, docenteId]) => docenteId === docente.id)
+                .map(([key]) => {
                     const [areaId, gradoId] = key.split(':');
                     const area = areasCurriculares.find(a => a.id === areaId);
                     const grado = grados.find(g => g.id === gradoId);
@@ -50,7 +50,7 @@ const ResumenHoras: React.FC = () => {
                 // Si ninguno es el seleccionado o ambos son (imposible), ordenar por horas totales
                 return b.totalHoras - a.totalHoras;
             });
-    }, [horasPorDocente, asignaciones, docenteSeleccionado]);
+    }, [docentes, grados, horasPorDocente, asignaciones, docenteSeleccionado]);
 
     const totalGeneral = resumenData.reduce((sum, docente) => sum + docente.totalHoras, 0);
 
@@ -95,60 +95,58 @@ const ResumenHoras: React.FC = () => {
                     </div>
 
                     {/* Lista de docentes con horas */}
-                    <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                    <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
                         {resumenData.map((docente) => {
                             const cargaLevel = getCargaLevel(docente.totalHoras);
 
                             return (
                                 <div
                                     key={docente.id}
-                                    className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${docenteSeleccionado === docente.id
-                                        ? 'ring-2 ring-blue-400 ring-offset-2 shadow-lg'
+                                    className={`rounded-lg border bg-white p-3 transition-shadow hover:shadow-md ${docenteSeleccionado === docente.id
+                                        ? 'ring-2 ring-blue-400 ring-offset-1 shadow-md'
                                         : ''
                                         }`}
-                                    style={{ borderColor: getDocenteColor(docente.id) }}
+                                    style={{ borderColor: docente.color }}
                                 >
-                                    <div className="flex items-center justify-between mb-3">
-                                        <div className="flex items-center space-x-3">
-                                            <div
-                                                className="w-4 h-4 rounded-full"
-                                                style={{ backgroundColor: getDocenteColor(docente.id) }}
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="flex min-w-0 flex-1 items-start gap-2">
+                                            <span
+                                                className="mt-1 h-3 w-3 shrink-0 rounded-full"
+                                                style={{ backgroundColor: docente.color }}
                                             />
-                                            <div>
-                                                <div className="flex items-center space-x-2">
-                                                    <p className="font-semibold text-gray-800 text-sm">
-                                                        {docente.nombre}
-                                                    </p>
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-semibold leading-snug text-gray-800 line-clamp-2" title={docente.nombre}>
+                                                    {docente.nombre}
+                                                </p>
+                                                <div className="mt-1 flex flex-wrap items-center gap-1">
+                                                    <span className="text-xs text-gray-500">Nivel {docente.nivel}</span>
                                                     {docenteSeleccionado === docente.id && (
-                                                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
+                                                        <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-medium text-blue-800">
                                                             Seleccionado
                                                         </span>
                                                     )}
                                                 </div>
-                                                <p className="text-xs text-gray-500">Nivel {docente.nivel}</p>
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="text-xl font-bold text-gray-800">
+                                        <div className="shrink-0 text-right">
+                                            <p className="text-lg font-bold leading-tight text-gray-800">
                                                 {docente.totalHoras}h
                                             </p>
-                                            <span className={`text-xs px-2 py-1 rounded-full ${cargaLevel.color}`}>
+                                            <span className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-[11px] ${cargaLevel.color}`}>
                                                 {cargaLevel.text}
                                             </span>
                                         </div>
                                     </div>
 
                                     {/* Desglose por áreas */}
-                                    <div className="space-y-2">
+                                    <div className="mt-2 space-y-1 border-t border-gray-100 pt-2">
                                         {Object.entries(docente.asignaciones).map(([area, data]) => (
-                                            <div key={area} className="flex items-center justify-between text-sm">
-                                                <div className="flex items-center space-x-2">
-                                                    <span className="font-medium text-gray-700">{area}:</span>
-                                                    <span className="text-gray-500 text-xs">
-                                                        ({data.grados.join(', ')})
-                                                    </span>
-                                                </div>
-                                                <span className="font-semibold text-gray-600">
+                                            <div key={area} className="flex items-start justify-between gap-2 text-xs">
+                                                <span className="min-w-0 text-gray-600">
+                                                    <span className="font-medium text-gray-700">{area}</span>
+                                                    <span className="text-gray-400"> · {data.grados.join(', ')}</span>
+                                                </span>
+                                                <span className="shrink-0 font-semibold text-gray-600">
                                                     {data.horas}h
                                                 </span>
                                             </div>
@@ -157,24 +155,6 @@ const ResumenHoras: React.FC = () => {
                                 </div>
                             );
                         })}
-                    </div>
-
-                    {/* Estadísticas adicionales */}
-                    <div className="mt-6 pt-4 border-t border-gray-200">
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div className="text-center">
-                                <p className="text-gray-500">Promedio por docente</p>
-                                <p className="font-semibold text-gray-800">
-                                    {Math.round(totalGeneral / resumenData.length)}h
-                                </p>
-                            </div>
-                            <div className="text-center">
-                                <p className="text-gray-500">Horas sin asignar</p>
-                                <p className="font-semibold text-gray-800">
-                                    {areasCurriculares.reduce((sum, area) => sum + area.horas, 0) * grados.length - totalGeneral}h
-                                </p>
-                            </div>
-                        </div>
                     </div>
                 </>
             )}

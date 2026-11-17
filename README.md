@@ -1,5 +1,41 @@
 # React + TypeScript + Vite
 
+## Sistema de Asignación de Horas Docentes
+
+Aplicación para distribuir las horas de cada área curricular entre los docentes de cada grado.
+
+### Persistencia
+
+Los datos se guardan en **IndexedDB** (base `cuadrohoras`, sin backend):
+
+| Almacén        | Contenido                                                   |
+| -------------- | ----------------------------------------------------------- |
+| `docentes`     | Docentes con `id`, `nombre`, `nivel`, `color` y `orden`      |
+| `grados`       | Grados/secciones con `id`, `nombre` y `orden`                |
+| `asignaciones` | Una fila por celda asignada (`areaId:gradoId`)               |
+| `meta`         | Docente seleccionado y flags de inicialización               |
+
+La capa de acceso vive en `src/db/indexeddb.ts` y el estado en `src/store/asignacionStore.ts`.
+La primera vez que se abre la app se siembran los 16 docentes y los 8 grados por defecto y, si
+existen datos de la versión anterior en `localStorage` (`asignacion-storage`), se migran
+automáticamente. Las bases creadas con la versión 1 se actualizan solas a la versión 2 (agrega
+el almacén `grados`) sin perder docentes ni asignaciones.
+
+### Docentes
+
+Desde el panel izquierdo se pueden **agregar**, **editar** (nombre, nivel y color),
+**eliminar** (con confirmación y liberación de sus asignaciones) y **reordenar**
+arrastrando la fila o usando las flechas ↑/↓. El orden se guarda en IndexedDB.
+
+### Grados y secciones
+
+El botón **Grados** de la tabla de distribución abre un modal para **agregar**, **editar** y
+**eliminar** grados (`1A`, `1B`, …). Al eliminar un grado también se eliminan sus celdas
+asignadas (se avisa cuántas antes de confirmar). El respaldo JSON incluye docentes, grados y
+asignaciones, de modo que exportar e importar restaura exactamente la misma distribución.
+
+---
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

@@ -1,4 +1,5 @@
-import { docentes, areasCurriculares, grados } from '../store/asignacionStore';
+import { areasCurriculares } from '../store/asignacionStore';
+import type { Docente, Grado } from '../types';
 import * as XLSX from 'xlsx';
 
 export interface ExportData {
@@ -21,12 +22,17 @@ export interface ExportData {
     };
 }
 
-export const generarDatosExportacion = (asignaciones: Record<string, string>, horasPorDocente: Record<string, number>): ExportData => {
+export const generarDatosExportacion = (
+    docentes: Docente[],
+    grados: Grado[],
+    asignaciones: Record<string, string>,
+    horasPorDocente: Record<string, number>,
+): ExportData => {
     const docentesConAsignaciones = docentes.map(docente => {
         const totalHoras = horasPorDocente[docente.id] || 0;
         const asignacionesDocente = Object.entries(asignaciones)
-            .filter(([_, docenteId]) => docenteId === docente.id)
-            .map(([key, _]) => {
+            .filter(([, docenteId]) => docenteId === docente.id)
+            .map(([key]) => {
                 const [areaId, gradoId] = key.split(':');
                 const area = areasCurriculares.find(a => a.id === areaId);
                 const grado = grados.find(g => g.id === gradoId);
