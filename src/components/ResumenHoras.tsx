@@ -62,9 +62,9 @@ const ResumenHoras: React.FC = () => {
     };
 
     return (
-        <div className="bg-white rounded-lg shadow-lg p-6 h-full">
-            <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
-                <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="flex h-full flex-col bg-white rounded-lg shadow-lg p-3">
+            <h2 className="mb-3 flex shrink-0 items-center text-base font-bold text-gray-800">
+                <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
                 Resumen de Horas
@@ -79,30 +79,30 @@ const ResumenHoras: React.FC = () => {
                     <p className="text-gray-400 text-sm mt-1">Comienza asignando horas a los docentes</p>
                 </div>
             ) : (
-                <>
+                <div className="flex min-h-0 flex-1 flex-col">
                     {/* Total general */}
-                    <div className="bg-linear-to-r from-blue-500 to-purple-600 text-white rounded-lg p-4 mb-6">
+                    <div className="shrink-0 bg-linear-to-r from-blue-500 to-purple-600 text-white rounded-lg px-3 py-2.5 mb-3">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm opacity-90">Total de Horas Asignadas</p>
-                                <p className="text-3xl font-bold">{totalGeneral}h</p>
+                                <p className="text-xs opacity-90">Total de Horas Asignadas</p>
+                                <p className="text-2xl font-bold leading-tight">{totalGeneral}h</p>
                             </div>
                             <div className="text-right">
-                                <p className="text-sm opacity-90">Docentes Activos</p>
-                                <p className="text-2xl font-bold">{resumenData.length}</p>
+                                <p className="text-xs opacity-90">Docentes Activos</p>
+                                <p className="text-xl font-bold leading-tight">{resumenData.length}</p>
                             </div>
                         </div>
                     </div>
 
                     {/* Lista de docentes con horas */}
-                    <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
+                    <div className="max-h-[60vh] md:max-h-none min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
                         {resumenData.map((docente) => {
                             const cargaLevel = getCargaLevel(docente.totalHoras);
 
                             return (
                                 <div
                                     key={docente.id}
-                                    className={`rounded-lg border bg-white p-3 transition-shadow hover:shadow-md ${docenteSeleccionado === docente.id
+                                    className={`rounded-lg border bg-white p-2.5 transition-shadow hover:shadow-md ${docenteSeleccionado === docente.id
                                         ? 'ring-2 ring-blue-400 ring-offset-1 shadow-md'
                                         : ''
                                         }`}
@@ -129,7 +129,7 @@ const ResumenHoras: React.FC = () => {
                                             </div>
                                         </div>
                                         <div className="shrink-0 text-right">
-                                            <p className="text-lg font-bold leading-tight text-gray-800">
+                                            <p className="text-base font-bold leading-tight text-gray-800">
                                                 {docente.totalHoras}h
                                             </p>
                                             <span className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-[11px] ${cargaLevel.color}`}>
@@ -142,11 +142,11 @@ const ResumenHoras: React.FC = () => {
                                     <div className="mt-2 space-y-1 border-t border-gray-100 pt-2">
                                         {Object.entries(docente.asignaciones).map(([area, data]) => (
                                             <div key={area} className="flex items-start justify-between gap-2 text-xs">
-                                                <span className="min-w-0 text-gray-600">
-                                                    <span className="font-medium text-gray-700">{area}</span>
-                                                    <span className="text-gray-400"> · {data.grados.join(', ')}</span>
+                                                <span className="min-w-0 text-gray-700">
+                                                    <span className="font-semibold text-gray-900">{area}</span>
+                                                    <span className="font-medium text-gray-600"> · {data.grados.join(', ')}</span>
                                                 </span>
-                                                <span className="shrink-0 font-semibold text-gray-600">
+                                                <span className="shrink-0 font-semibold text-gray-800">
                                                     {data.horas}h
                                                 </span>
                                             </div>
@@ -156,7 +156,7 @@ const ResumenHoras: React.FC = () => {
                             );
                         })}
                     </div>
-                </>
+                </div>
             )}
         </div>
     );

@@ -90,10 +90,10 @@ const DistribucionTable: React.FC = () => {
     };
 
     return (
-        <div className="bg-white rounded-lg shadow-lg p-5 h-full overflow-auto">
-            <div className="mb-6 flex items-center justify-between gap-3">
-                <h2 className="flex items-center text-xl font-bold text-gray-800">
-                    <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="flex h-full flex-col bg-white rounded-lg shadow-lg p-3">
+            <div className="mb-2.5 flex shrink-0 items-center justify-between gap-3">
+                <h2 className="flex items-center text-base font-bold text-gray-800">
+                    <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                     </svg>
                     Distribución de Horas
@@ -141,20 +141,20 @@ const DistribucionTable: React.FC = () => {
                     </div>
                 </div>
             ) : (
-                <div className="overflow-x-auto">
+                <div className="min-h-0 flex-1 overflow-auto">
                     <table className="w-full border-collapse">
                         <thead>
                             <tr>
-                                <th className="border border-gray-300 bg-gray-100 px-2 py-2 text-left text-sm font-semibold text-gray-700">
+                                <th className="sticky top-0 z-10 border border-gray-300 bg-gray-100 px-2 py-1.5 text-left text-sm font-semibold text-gray-700">
                                     Área Curricular
                                 </th>
-                                <th className="border border-gray-300 bg-gray-100 px-2 py-2 text-center text-sm font-semibold text-gray-700">
+                                <th className="sticky top-0 z-10 border border-gray-300 bg-gray-100 px-2 py-1.5 text-center text-sm font-semibold text-gray-700">
                                     Horas
                                 </th>
                                 {grados.map((grado) => (
                                     <th
                                         key={grado.id}
-                                        className="border border-gray-300 bg-gray-100 px-1 py-1 text-center text-sm font-semibold text-gray-700 min-w-[50px]"
+                                        className="sticky top-0 z-10 border border-gray-300 bg-gray-100 px-1 py-1 text-center text-sm font-semibold text-gray-700 min-w-[50px]"
                                     >
                                         {grado.nombre}
                                     </th>
@@ -164,10 +164,10 @@ const DistribucionTable: React.FC = () => {
                         <tbody>
                             {areasCurriculares.map((area) => (
                                 <tr key={area.id} className="hover:bg-gray-50">
-                                    <td className="border border-gray-300 px-2 py-3 text-sm font-medium text-gray-800 bg-gray-50">
+                                    <td className="border border-gray-300 px-2 py-1.5 text-sm font-medium text-gray-800 bg-gray-50">
                                         {area.nombre}
                                     </td>
-                                    <td className="border border-gray-300 px-2 py-3 text-sm text-center font-semibold text-gray-600 bg-gray-50">
+                                    <td className="border border-gray-300 px-2 py-1.5 text-sm text-center font-semibold text-gray-600 bg-gray-50">
                                         {area.horas}
                                     </td>
                                     {grados.map((grado) => {
@@ -184,7 +184,7 @@ const DistribucionTable: React.FC = () => {
                                                 className="border px-1 py-1 text-center text-xs font-medium transition-all duration-200 hover:shadow-sm"
                                                 style={getCellStyle(area.id, grado.id)}
                                             >
-                                                <div className="flex h-9 flex-col items-center justify-center gap-0.5">
+                                                <div className="flex h-8 flex-col items-center justify-center gap-0.5">
                                                     {asignacionActual ? (
                                                         <>
                                                             <div
@@ -265,9 +265,11 @@ const DistribucionTable: React.FC = () => {
                 </div>
             )}
 
-            <div className="mt-4 text-sm text-gray-500">
-                <p>💡 Tip: Las celdas asignadas al docente seleccionado tienen un borde más grueso y colorido</p>
-                <p className="mt-1">⏱️ Cada docente puede acumular como máximo 26 horas.</p>
+            <div className="mt-1.5 shrink-0 text-[11px] font-medium leading-tight text-gray-600">
+                <p>
+                    <span aria-hidden="true">💡</span> Las celdas del docente seleccionado tienen borde grueso y
+                    colorido · <span aria-hidden="true">⏱️</span> Máximo 26h por docente.
+                </p>
             </div>
 
             {mostrarGrados && <GradosModal onCerrar={() => setMostrarGrados(false)} />}

@@ -94,10 +94,10 @@ const DocentesList: React.FC = () => {
     };
 
     return (
-        <div className="flex h-full flex-col bg-white rounded-lg shadow-lg p-5">
-            <div className="mb-4 flex shrink-0 items-center justify-between">
-                <h2 className="flex items-center text-xl font-bold text-gray-800">
-                    <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="flex h-full flex-col bg-white rounded-lg shadow-lg p-3">
+            <div className="mb-2.5 flex shrink-0 items-center justify-between">
+                <h2 className="flex items-center text-base font-bold text-gray-800">
+                    <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                     </svg>
                     Docentes
@@ -125,7 +125,7 @@ const DocentesList: React.FC = () => {
                     <p className="mt-1 text-xs text-gray-400">Usa el botón «Agregar» para crear el primero</p>
                 </div>
             ) : (
-                <div className="max-h-[70vh] min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+                <div className="max-h-[70vh] md:max-h-none min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
                     {docentes.map((docente, indice) => {
                         const isSelected = docenteSeleccionado === docente.id;
                         const totalHoras = getTotalHorasDocente(docente.id);
@@ -145,8 +145,8 @@ const DocentesList: React.FC = () => {
                                 className={`
                                     group relative cursor-pointer rounded-lg border-2 p-2 transition-all duration-150
                                     ${isSelected
-                                        ? 'border-gray-800 bg-gray-100 shadow-lg'
-                                        : 'border-gray-200 hover:border-gray-400 hover:shadow-md'
+                                        ? 'border-blue-700 bg-blue-200 shadow-md'
+                                        : 'border-gray-200 bg-white hover:border-gray-400 hover:shadow-md'
                                     }
                                     ${esObjetivo ? 'ring-2 ring-blue-400 ring-offset-1' : ''}
                                     ${seArrastra ? 'opacity-40' : ''}
@@ -201,7 +201,7 @@ const DocentesList: React.FC = () => {
                                             </div>
                                         </div>
 
-                                        <div className="mt-1.5 flex items-center justify-between">
+                                        <div className="mt-1 flex items-center justify-between">
                                             <div className="flex items-center gap-0.5 text-gray-400">
                                                 <button
                                                     type="button"
@@ -276,14 +276,14 @@ const DocentesList: React.FC = () => {
             )}
 
             {docenteSeleccionado && (
-                <div className="mt-4 shrink-0 rounded-lg border border-blue-200 bg-blue-50 p-3">
-                    <p className="text-sm font-medium text-blue-800">
+                <div className="mt-2 shrink-0 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5">
+                    <p className="text-xs font-medium text-blue-800">
                         Docente seleccionado:{' '}
                         <span className="font-bold">
                             {docentes.find((d) => d.id === docenteSeleccionado)?.nombre}
                         </span>
                     </p>
-                    <p className="mt-1 text-xs text-blue-600">
+                    <p className="text-[11px] text-blue-600">
                         Haz clic en las celdas de la tabla para asignar horas
                     </p>
                 </div>
