@@ -3,11 +3,13 @@ import DocentesList from './components/DocentesList';
 import DistribucionTable from './components/DistribucionTable';
 import ResumenHoras from './components/ResumenHoras';
 import ExportButton from './components/ExportButton';
+import NormativaModal from './components/NormativaModal';
 import Toast from './components/Toast';
 import { useAsignacionStore } from './store/asignacionStore';
 
 const App: React.FC = () => {
   const { inicializar, error, limpiarError } = useAsignacionStore();
+  const [mostrarNormativa, setMostrarNormativa] = React.useState(false);
 
   // Cargar los datos guardados en IndexedDB al iniciar
   React.useEffect(() => {
@@ -44,6 +46,18 @@ const App: React.FC = () => {
                   day: 'numeric'
                 })}
               </span>
+              <button
+                type="button"
+                onClick={() => setMostrarNormativa(true)}
+                aria-haspopup="dialog"
+                title="Normativa: RVM N.° 184-2026-MINEDU"
+                aria-label="Ver normativa del cuadro de horas"
+                className="flex items-center rounded-lg border border-gray-300 bg-white p-1.5 text-gray-600 shadow-sm transition-colors hover:bg-gray-50 hover:text-blue-600"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+              </button>
               <ExportButton />
             </div>
           </div>
@@ -94,6 +108,9 @@ const App: React.FC = () => {
       </main>
 
       <Toast />
+
+      {/* Modal de normativa */}
+      {mostrarNormativa && <NormativaModal onCerrar={() => setMostrarNormativa(false)} />}
 
       {/* Footer */}
       <footer className="bg-white border-t border-gray-200 mt-12">
