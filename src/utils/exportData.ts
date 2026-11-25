@@ -77,57 +77,6 @@ export const generarDatosExportacion = (
     };
 };
 
-export const exportarJSON = (data: ExportData): void => {
-    const jsonString = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `asignacion_horas_${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-};
-
-export const exportarCSV = (data: ExportData): void => {
-    const headers = ['Docente', 'Nivel', 'Área', 'Grado', 'Horas', 'Total Docente'];
-    const rows = data.docentes.flatMap(docente =>
-        docente.asignaciones.map(asignacion => [
-            docente.nombre,
-            `Nivel ${docente.nivel}`,
-            asignacion.area,
-            asignacion.grado,
-            asignacion.horas.toString(),
-            docente.totalHoras.toString()
-        ])
-    );
-
-    const csvContent = [
-        `Reporte de Asignación de Horas - ${data.fechaExportacion}`,
-        '',
-        headers.join(','),
-        ...rows.map(row => row.map(cell => `"${cell}"`).join(',')),
-        '',
-        'Resumen',
-        `Total de Horas Asignadas,${data.resumen.totalHoras}`,
-        `Total de Docentes Activos,${data.resumen.totalDocentes}`,
-        ...Object.entries(data.resumen.horasPorNivel).map(([nivel, horas]) =>
-            `Total Nivel ${nivel},${horas}`
-        )
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `asignacion_horas_${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-};
-
 export const exportarExcel = async (data: ExportData): Promise<void> => {
     // Crear workbook
     const wb = XLSX.utils.book_new();

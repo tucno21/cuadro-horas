@@ -1,12 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useAsignacionStore } from '../store/asignacionStore';
-import { generarDatosExportacion, exportarJSON, exportarCSV, exportarExcel } from '../utils/exportData';
 import { crearRespaldo, descargarRespaldo, leerRespaldo } from '../utils/respaldo';
+import { generarDatosExportacion, exportarExcel } from '../utils/exportData';
 import type { RespaldoDatos } from '../types';
 
 /**
- * Acciones principales de la aplicación (exportar, importar y resetear).
- * Se muestran como botones compactos en el encabezado.
+ * Acciones principales: exportar el reporte en Excel, descargar el respaldo
+ * completo, importarlo en otro navegador/equipo y resetear las asignaciones.
  */
 const ExportButton: React.FC = () => {
     const {
@@ -19,63 +19,34 @@ const ExportButton: React.FC = () => {
         mostrarToast,
     } = useAsignacionStore();
 
-    const [showExportMenu, setShowExportMenu] = useState(false);
     const [showConfirmReset, setShowConfirmReset] = useState(false);
     const [respaldoPendiente, setRespaldoPendiente] = useState<RespaldoDatos | null>(null);
     const [importando, setImportando] = useState(false);
     const inputArchivoRef = useRef<HTMLInputElement>(null);
-    const menuRef = useRef<HTMLDivElement>(null);
 
     const hasData = Object.keys(asignaciones).length > 0;
+    const puedeRespaldar = docentes.length > 0 || grados.length > 0;
 
-    useEffect(() => {
-        if (!showExportMenu) return;
-
-        const alHacerClic = (evento: MouseEvent) => {
-            if (menuRef.current && !menuRef.current.contains(evento.target as Node)) {
-                setShowExportMenu(false);
-            }
-        };
-        const alPresionarTecla = (evento: KeyboardEvent) => {
-            if (evento.key === 'Escape') setShowExportMenu(false);
-        };
-
-        document.addEventListener('mousedown', alHacerClic);
-        window.addEventListener('keydown', alPresionarTecla);
-        return () => {
-            document.removeEventListener('mousedown', alHacerClic);
-            window.removeEventListener('keydown', alPresionarTecla);
-        };
-    }, [showExportMenu]);
-
-    const exportarReporte = (formato: 'json' | 'csv' | 'excel') => {
-        setShowExportMenu(false);
+    const handleExportarExcel = () => {
         if (!hasData) {
-            mostrarToast('info', 'Asigna horas a un docente antes de exportar el reporte.');
+            mostrarToast('info', 'Asigna horas a un docente antes de exportar el Excel.');
             return;
         }
-
-        const data = generarDatosExportacion(docentes, grados, asignaciones, horasPorDocente);
-        if (formato === 'json') {
-            exportarJSON(data);
-            mostrarToast('exito', 'Reporte exportado en JSON.');
-        } else if (formato === 'csv') {
-            exportarCSV(data);
-            mostrarToast('exito', 'Reporte exportado en CSV.');
-        } else {
-            void exportarExcel(data);
-            mostrarToast('exito', 'Reporte exportado en Excel.');
-        }
+        void exportarExcel(generarDatosExportacion(docentes, grados, asignaciones, horasPorDocente));
+        mostrarToast('exito', 'Reporte exportado en Excel.');
     };
 
     const handleExportarRespaldo = () => {
-        setShowExportMenu(false);
-        if (docentes.length === 0) {
+        if (!puedeRespaldar) {
             mostrarToast('info', 'No hay datos para respaldar todavía.');
             return;
         }
         descargarRespaldo(crearRespaldo(docentes, grados, asignaciones));
-        mostrarToast('exito', 'Respaldo exportado. Guárdalo en un lugar seguro.');
+        mostrarToast(
+            'exito',
+            `Respaldo exportado: ${docentes.length} docentes, ${grados.length} grados y ` +
+                `${Object.keys(asignaciones).length} celdas. Impórtalo en el otro equipo para continuar.`,
+        );
     };
 
     const handleSeleccionArchivo = async (evento: React.ChangeEvent<HTMLInputElement>) => {
@@ -120,79 +91,33 @@ const ExportButton: React.FC = () => {
     return (
         <>
             <div className="flex items-center gap-2">
-                {/* Exportar */}
-                <div className="relative" ref={menuRef}>
-                    <button
-                        type="button"
-                        onClick={() => setShowExportMenu(!showExportMenu)}
-                        aria-haspopup="menu"
-                        aria-expanded={showExportMenu}
-                        className="flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
-                    >
-                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        Exportar
-                        <svg
-                            className={`h-3 w-3 transition-transform ${showExportMenu ? 'rotate-180' : ''}`}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </button>
+                {/* Respaldo completo (el mismo archivo sirve para importar en otro equipo) */}
+                <button
+                    type="button"
+                    onClick={handleExportarRespaldo}
+                    disabled={!puedeRespaldar}
+                    title="Descarga un JSON con docentes, grados y asignaciones para importarlo en otro navegador o equipo"
+                    className="flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+                >
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Respaldo
+                </button>
 
-                    {showExportMenu && (
-                        <div
-                            role="menu"
-                            className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl"
-                        >
-                            <p className="border-b border-gray-100 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-                                Reporte
-                            </p>
-                            <button
-                                type="button"
-                                role="menuitem"
-                                onClick={() => exportarReporte('json')}
-                                disabled={!hasData}
-                                className="w-full px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-400"
-                            >
-                                Exportar JSON
-                            </button>
-                            <button
-                                type="button"
-                                role="menuitem"
-                                onClick={() => exportarReporte('csv')}
-                                disabled={!hasData}
-                                className="w-full border-t border-gray-100 px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-400"
-                            >
-                                Exportar CSV
-                            </button>
-                            <button
-                                type="button"
-                                role="menuitem"
-                                onClick={() => exportarReporte('excel')}
-                                disabled={!hasData}
-                                className="w-full border-t border-gray-100 px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-400"
-                            >
-                                Exportar Excel
-                            </button>
-                            <p className="border-y border-gray-100 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-                                Respaldo completo
-                            </p>
-                            <button
-                                type="button"
-                                role="menuitem"
-                                onClick={handleExportarRespaldo}
-                                disabled={docentes.length === 0}
-                                className="w-full px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-400"
-                            >
-                                Respaldo (JSON)
-                            </button>
-                        </div>
-                    )}
-                </div>
+                {/* Reporte en Excel */}
+                <button
+                    type="button"
+                    onClick={handleExportarExcel}
+                    disabled={!hasData}
+                    title="Descarga un Excel con el resumen y el detalle de las asignaciones"
+                    className="flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400"
+                >
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18M10 4v16M6 4h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2z" />
+                    </svg>
+                    Excel
+                </button>
 
                 {/* Importar */}
                 <button

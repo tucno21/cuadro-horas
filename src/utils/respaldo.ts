@@ -1,5 +1,5 @@
 import type { Docente, EstadoAsignacion, Grado, NivelDocente, RespaldoDatos } from '../types';
-import { NIVELES, areasCurriculares, gradosPorDefecto } from '../store/asignacionStore';
+import { NIVELES, areasCurriculares, generarIdGrado, gradosPorDefecto } from '../store/asignacionStore';
 
 const FORMATO = 'cuadrohoras-respaldo';
 const VERSION = 2;
@@ -8,23 +8,49 @@ const COLOR_HEX = /^#[0-9a-fA-F]{6}$/;
 const esObjeto = (valor: unknown): valor is Record<string, unknown> =>
     typeof valor === 'object' && valor !== null && !Array.isArray(valor);
 
-/** Construye el objeto de respaldo con todos los datos actuales. */
+/**
+ * Construye el objeto de respaldo con todos los datos actuales.
+ *
+ * El `id` de un grado es interno y no cambia cuando se renombra (por ejemplo,
+ * de "4U" a "4A"). Para que el respaldo sea legible y coherente con los nombres
+ * actuales, los ids se regeneran a partir del nombre y se remapean las claves
+ * de las asignaciones.
+ */
 export const crearRespaldo = (
     docentes: Docente[],
     grados: Grado[],
     asignaciones: EstadoAsignacion,
-): RespaldoDatos => ({
-    formato: FORMATO,
-    version: VERSION,
-    exportadoEn: new Date().toISOString(),
-    docentes: [...docentes]
-        .sort((a, b) => a.orden - b.orden)
-        .map((docente) => ({ ...docente })),
-    grados: [...grados]
-        .sort((a, b) => a.orden - b.orden)
-        .map((grado) => ({ ...grado })),
-    asignaciones: { ...asignaciones },
-});
+): RespaldoDatos => {
+    const gradosOrdenados = [...grados].sort((a, b) => a.orden - b.orden);
+
+    const gradosRespaldo: Grado[] = [];
+    const idsRespaldo = new Map<string, string>();
+
+    gradosOrdenados.forEach((grado) => {
+        const id = generarIdGrado(grado.nombre, gradosRespaldo);
+        idsRespaldo.set(grado.id, id);
+        gradosRespaldo.push({ ...grado, id });
+    });
+
+    const asignacionesRespaldo: EstadoAsignacion = {};
+    Object.entries(asignaciones).forEach(([key, docenteId]) => {
+        const [areaId, gradoId] = key.split(':');
+        const nuevoGradoId = idsRespaldo.get(gradoId);
+        if (!nuevoGradoId) return;
+        asignacionesRespaldo[`${areaId}:${nuevoGradoId}`] = docenteId;
+    });
+
+    return {
+        formato: FORMATO,
+        version: VERSION,
+        exportadoEn: new Date().toISOString(),
+        docentes: [...docentes]
+            .sort((a, b) => a.orden - b.orden)
+            .map((docente) => ({ ...docente })),
+        grados: gradosRespaldo,
+        asignaciones: asignacionesRespaldo,
+    };
+};
 
 /** Descarga el respaldo como archivo .json */
 export const descargarRespaldo = (datos: RespaldoDatos): void => {

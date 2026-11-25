@@ -142,7 +142,7 @@ const renumerarGrados = (grados: Grado[]): Grado[] =>
     grados.map((grado, index) => ({ ...grado, orden: index }));
 
 /** Id estable a partir del nombre del grado (1A, 2B, …), sin chocar con los existentes. */
-const generarIdGrado = (nombre: string, existentes: Grado[]): string => {
+export const generarIdGrado = (nombre: string, existentes: Grado[]): string => {
     const base =
         nombre
             .normalize('NFD')
