@@ -28,10 +28,17 @@ export const generarDatosExportacion = (
     asignaciones: Record<string, string>,
     horasPorDocente: Record<string, number>,
 ): ExportData => {
+    const ordenGrados = new Map(grados.map((grado, indice) => [grado.id, indice]));
+    const ordenDeGrado = (key: string) =>
+        ordenGrados.get(key.split(':')[1]) ?? Number.MAX_SAFE_INTEGER;
+
     const docentesConAsignaciones = docentes.map(docente => {
         const totalHoras = horasPorDocente[docente.id] || 0;
         const asignacionesDocente = Object.entries(asignaciones)
             .filter(([, docenteId]) => docenteId === docente.id)
+            // Ordena por la posición de los grados (1A, 2A, 2B, 3A, …), no por
+            // el orden en que se asignaron.
+            .sort(([keyA], [keyB]) => ordenDeGrado(keyA) - ordenDeGrado(keyB))
             .map(([key]) => {
                 const [areaId, gradoId] = key.split(':');
                 const area = areasCurriculares.find(a => a.id === areaId);

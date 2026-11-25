@@ -6,6 +6,9 @@ const ResumenHoras: React.FC = () => {
     const listaRef = useRef<HTMLDivElement>(null);
 
     const resumenData = useMemo(() => {
+        // Orden de los grados tal como se muestran en la tabla (columnas).
+        const ordenGrados = new Map(grados.map((grado, indice) => [grado.id, indice]));
+
         return docentes.map(docente => {
             const totalHoras = horasPorDocente[docente.id] || 0;
             const asignacionesDocente = Object.entries(asignaciones)
@@ -18,8 +21,12 @@ const ResumenHoras: React.FC = () => {
                         area: area?.nombre || 'Desconocido',
                         grado: grado?.nombre || 'Desconocido',
                         horas: area?.horas || 0,
+                        ordenGrado: ordenGrados.get(gradoId) ?? Number.MAX_SAFE_INTEGER,
                     };
-                });
+                })
+                // Ordena los grados por su posición en la tabla, no por el orden
+                // en que se fueron asignando (1A, 2A, 2B, 3A, 3B, …).
+                .sort((a, b) => a.ordenGrado - b.ordenGrado);
 
             const agrupadoPorArea = asignacionesDocente.reduce((acc, asignacion) => {
                 if (!acc[asignacion.area]) {
