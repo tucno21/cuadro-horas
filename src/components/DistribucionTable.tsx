@@ -3,10 +3,20 @@ import { useAsignacionStore, areasCurriculares, getDocenteColor, getDocenteNombr
 import GradosModal from './GradosModal';
 
 const DistribucionTable: React.FC = () => {
-    const { grados, docenteSeleccionado, asignaciones, toggleAsignacion } = useAsignacionStore();
+    const { docentes, grados, docenteSeleccionado, asignaciones, horasPorDocente, toggleAsignacion } = useAsignacionStore();
     const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; areaId: string; gradoId: string; docenteActual: string } | null>(null);
     const [tooltip, setTooltip] = useState<{ show: boolean; x: number; y: number; docenteId: string } | null>(null);
     const [mostrarGrados, setMostrarGrados] = useState(false);
+
+    const docenteActual = docentes.find((docente) => docente.id === docenteSeleccionado);
+    const horasDocenteActual = docenteSeleccionado ? horasPorDocente[docenteSeleccionado] ?? 0 : 0;
+
+    // Áreas en las que el docente seleccionado ya tiene al menos una sección asignada.
+    const areasDelSeleccionado = new Set(
+        Object.entries(asignaciones)
+            .filter(([, docenteId]) => docenteId === docenteSeleccionado)
+            .map(([key]) => key.split(':')[0]),
+    );
 
     const handleCellClick = (areaId: string, gradoId: string) => {
         if (!docenteSeleccionado) return;
@@ -67,17 +77,32 @@ const DistribucionTable: React.FC = () => {
         let textColor = '#374151'; // gray-700
         let borderColor = '#D1D5DB'; // gray-300
         let borderWidth = '1px';
+        let boxShadow: string | undefined;
 
         if (asignacionActual) {
-            backgroundColor = getDocenteColor(asignacionActual) + '20'; // 20% opacity
-            borderColor = getDocenteColor(asignacionActual);
-            textColor = '#111827'; // gray-900
-            if (asignacionActual === docenteSeleccionado) {
-                borderWidth = '2px';
+            const color = getDocenteColor(asignacionActual);
+            const esSeleccionado = asignacionActual === docenteSeleccionado;
+
+            if (esSeleccionado) {
+                // Las horas del docente seleccionado: el resaltado va dentro de
+                // la celda (inset) para no agrandarla ni mover la tabla.
+                backgroundColor = color + '2E';
+                borderColor = color;
+                textColor = '#111827'; // gray-900
+                boxShadow = `inset 0 0 0 2px ${color}, inset 0 0 10px ${color}44`;
+            } else {
+                // Horas de otros docentes: conservan su color (atenuado) para
+                // poder distinguirlos, pero sin competir con el seleccionado.
+                backgroundColor = color + '1A';
+                borderColor = color + '66';
+                textColor = '#4B5563'; // gray-600
             }
-        }
-        if (docenteSeleccionado && !asignacionActual) {
-            backgroundColor = '#F3F4F6';
+        } else if (docenteSeleccionado) {
+            // Celdas vacías: neutras y sin color, para no confundirlas con las
+            // horas de otros docentes.
+            backgroundColor = '#FAFAFA';
+            borderColor = '#E5E7EB'; // gray-200
+            textColor = '#D1D5DB'; // gray-300
         }
 
         return {
@@ -85,32 +110,54 @@ const DistribucionTable: React.FC = () => {
             color: textColor,
             borderColor,
             borderWidth,
+            boxShadow,
             cursor: docenteSeleccionado ? 'pointer' : 'default',
         };
     };
 
     return (
         <div className="flex h-full flex-col bg-white rounded-lg shadow-lg p-3">
-            <div className="mb-2.5 flex shrink-0 items-center justify-between gap-3">
-                <h2 className="flex items-center text-base font-bold text-gray-800">
+            <div className="mb-2.5 flex shrink-0 items-center justify-between gap-2">
+                <h2 className="flex shrink-0 items-center text-base font-bold text-gray-800">
                     <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                     </svg>
-                    Distribución de Horas
+                    <span className="hidden xl:inline">Distribución de Horas</span>
+                    <span className="xl:hidden">Distribución</span>
                 </h2>
-                <button
-                    type="button"
-                    onClick={() => setMostrarGrados(true)}
-                    className="flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
-                >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                    </svg>
-                    Grados
-                    <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[11px] font-semibold text-gray-600">
-                        {grados.length}
-                    </span>
-                </button>
+                <div className="flex min-w-0 items-center justify-end gap-1.5">
+                    {/* Identifica las horas del seleccionado sin ocupar una fila extra */}
+                    {docenteSeleccionado && docenteActual && (
+                        <span
+                            className="flex min-w-0 max-w-[11rem] items-center gap-1 rounded-full border px-1.5 py-0.5 text-[11px] font-semibold text-gray-700"
+                            style={{
+                                borderColor: docenteActual.color + '66',
+                                backgroundColor: docenteActual.color + '14',
+                            }}
+                            title={`${docenteActual.nombre} · ${horasDocenteActual}h`}
+                        >
+                            <span
+                                className="h-2.5 w-2.5 shrink-0 rounded-full"
+                                style={{ backgroundColor: docenteActual.color }}
+                            />
+                            <span className="min-w-0 truncate">{docenteActual.nombre}</span>
+                            <span className="shrink-0 font-bold">{horasDocenteActual}h</span>
+                        </span>
+                    )}
+                    <button
+                        type="button"
+                        onClick={() => setMostrarGrados(true)}
+                        className="flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+                    >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                        </svg>
+                        <span className="hidden sm:inline">Grados</span>
+                        <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[11px] font-semibold text-gray-600">
+                            {grados.length}
+                        </span>
+                    </button>
+                </div>
             </div>
 
             {grados.length === 0 ? (
@@ -162,10 +209,29 @@ const DistribucionTable: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {areasCurriculares.map((area) => (
+                            {areasCurriculares.map((area) => {
+                                const areaDelSeleccionado = areasDelSeleccionado.has(area.id);
+                                return (
                                 <tr key={area.id} className="hover:bg-gray-50">
-                                    <td className="border border-gray-300 px-2 py-1.5 text-sm font-medium text-gray-800 bg-gray-50">
-                                        {area.nombre}
+                                    <td
+                                        className="border border-gray-300 px-2 py-1.5 text-sm bg-gray-50"
+                                        style={areaDelSeleccionado && docenteActual ? {
+                                            boxShadow: `inset 4px 0 0 ${docenteActual.color}`,
+                                            backgroundColor: docenteActual.color + '12',
+                                        } : undefined}
+                                    >
+                                        <span className="flex items-center gap-1.5">
+                                            <span className={`font-medium ${areaDelSeleccionado ? 'text-gray-900' : 'text-gray-800'}`}>
+                                                {area.nombre}
+                                            </span>
+                                            {areaDelSeleccionado && (
+                                                <span
+                                                    className="h-1.5 w-1.5 shrink-0 rounded-full"
+                                                    style={{ backgroundColor: docenteActual?.color }}
+                                                    aria-hidden="true"
+                                                />
+                                            )}
+                                        </span>
                                     </td>
                                     <td className="border border-gray-300 px-2 py-1.5 text-sm text-center font-semibold text-gray-600 bg-gray-50">
                                         {area.horas}
@@ -181,29 +247,38 @@ const DistribucionTable: React.FC = () => {
                                                 onClick={() => handleCellClick(area.id, grado.id)}
                                                 onMouseEnter={asignacionActual ? (e) => handleMouseEnter(e, asignacionActual) : undefined}
                                                 onMouseLeave={asignacionActual ? handleMouseLeave : undefined}
-                                                className="border px-1 py-1 text-center text-xs font-medium transition-all duration-200 hover:shadow-sm"
+                                                className="border px-1 py-1 text-center text-xs font-medium transition-all duration-200"
                                                 style={getCellStyle(area.id, grado.id)}
+                                                title={asignacionActual ? getDocenteNombre(asignacionActual) : undefined}
                                             >
                                                 <div className="flex h-8 flex-col items-center justify-center gap-0.5">
                                                     {asignacionActual ? (
-                                                        <>
-                                                            <div
-                                                                className="h-2.5 w-2.5 rounded-full"
+                                                        isAssignedToSelected ? (
+                                                            <span
+                                                                className="rounded-md px-1.5 py-0.5 text-[11px] font-bold text-white shadow-sm ring-1 ring-white/60"
                                                                 style={{ backgroundColor: getDocenteColor(asignacionActual) }}
-                                                            />
-                                                            <span className={`text-xs ${isAssignedToSelected ? 'font-bold' : ''}`}>
+                                                            >
                                                                 {area.horas}h
                                                             </span>
-                                                        </>
+                                                        ) : (
+                                                            <>
+                                                                <div
+                                                                    className="h-2.5 w-2.5 rounded-full"
+                                                                    style={{ backgroundColor: getDocenteColor(asignacionActual) }}
+                                                                />
+                                                                <span className="text-[11px] font-semibold">{area.horas}h</span>
+                                                            </>
+                                                        )
                                                     ) : (
-                                                        <span className="text-gray-400">—</span>
+                                                        <span className="text-current" aria-hidden="true">—</span>
                                                     )}
                                                 </div>
                                             </td>
                                         );
                                     })}
                                 </tr>
-                            ))}
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
@@ -267,8 +342,9 @@ const DistribucionTable: React.FC = () => {
 
             <div className="mt-1.5 shrink-0 text-[11px] font-medium leading-tight text-gray-600">
                 <p>
-                    <span aria-hidden="true">💡</span> Las celdas del docente seleccionado tienen borde grueso y
-                    colorido · <span aria-hidden="true">⏱️</span> Máximo 26h por docente.
+                    <span aria-hidden="true">💡</span> Las celdas con recuadro interior y la hora en color sólido son
+                    del docente seleccionado. Las celdas con otro color están ocupadas por otro docente; las vacías
+                    (—) están libres · <span aria-hidden="true">⏱️</span> Máximo 26h por docente.
                 </p>
             </div>
 

@@ -1,8 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { useAsignacionStore, areasCurriculares } from '../store/asignacionStore';
 
 const ResumenHoras: React.FC = () => {
     const { docentes, grados, horasPorDocente, asignaciones, docenteSeleccionado } = useAsignacionStore();
+    const listaRef = useRef<HTMLDivElement>(null);
 
     const resumenData = useMemo(() => {
         return docentes.map(docente => {
@@ -37,7 +38,10 @@ const ResumenHoras: React.FC = () => {
                 totalHoras,
                 asignaciones: agrupadoPorArea,
             };
-        }).filter(docente => docente.totalHoras > 0)
+        })
+            // Se muestran los docentes con horas y, siempre, el docente seleccionado
+            // (aunque todavía no tenga ninguna hora asignada).
+            .filter(docente => docente.totalHoras > 0 || docente.id === docenteSeleccionado)
             .sort((a, b) => {
                 // Si el docente a es el seleccionado y b no, a va primero
                 if (docenteSeleccionado === a.id && docenteSeleccionado !== b.id) {
@@ -53,8 +57,16 @@ const ResumenHoras: React.FC = () => {
     }, [docentes, grados, horasPorDocente, asignaciones, docenteSeleccionado]);
 
     const totalGeneral = resumenData.reduce((sum, docente) => sum + docente.totalHoras, 0);
+    const docentesConHoras = resumenData.filter((docente) => docente.totalHoras > 0).length;
+
+    // Mantén visible al docente seleccionado: siempre va primero en la lista.
+    useEffect(() => {
+        const seleccionado = listaRef.current?.querySelector<HTMLElement>('[data-seleccionado="true"]');
+        seleccionado?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }, [docenteSeleccionado]);
 
     const getCargaLevel = (horas: number) => {
+        if (horas === 0) return { text: 'Sin asignar', color: 'text-gray-500 bg-gray-100' };
         if (horas >= 35) return { text: 'Muy Alta', color: 'text-red-600 bg-red-100' };
         if (horas >= 30) return { text: 'Alta', color: 'text-amber-600 bg-amber-100' };
         if (horas >= 20) return { text: 'Normal', color: 'text-green-600 bg-green-100' };
@@ -88,20 +100,21 @@ const ResumenHoras: React.FC = () => {
                                 <p className="text-2xl font-bold leading-tight">{totalGeneral}h</p>
                             </div>
                             <div className="text-right">
-                                <p className="text-xs opacity-90">Docentes Activos</p>
-                                <p className="text-xl font-bold leading-tight">{resumenData.length}</p>
+                                <p className="text-xs opacity-90">Docentes con Horas</p>
+                                <p className="text-xl font-bold leading-tight">{docentesConHoras}</p>
                             </div>
                         </div>
                     </div>
 
                     {/* Lista de docentes con horas */}
-                    <div className="max-h-[60vh] md:max-h-none min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+                    <div ref={listaRef} className="max-h-[60vh] md:max-h-none min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
                         {resumenData.map((docente) => {
                             const cargaLevel = getCargaLevel(docente.totalHoras);
 
                             return (
                                 <div
                                     key={docente.id}
+                                    data-seleccionado={docenteSeleccionado === docente.id ? 'true' : undefined}
                                     className={`rounded-lg border bg-white p-2.5 transition-shadow hover:shadow-md ${docenteSeleccionado === docente.id
                                         ? 'ring-2 ring-blue-400 ring-offset-1 shadow-md'
                                         : ''
@@ -140,17 +153,23 @@ const ResumenHoras: React.FC = () => {
 
                                     {/* Desglose por áreas */}
                                     <div className="mt-2 space-y-1 border-t border-gray-100 pt-2">
-                                        {Object.entries(docente.asignaciones).map(([area, data]) => (
-                                            <div key={area} className="flex items-start justify-between gap-2 text-xs">
-                                                <span className="min-w-0 text-gray-700">
-                                                    <span className="font-semibold text-gray-900">{area}</span>
-                                                    <span className="font-medium text-gray-600"> · {data.grados.join(', ')}</span>
-                                                </span>
-                                                <span className="shrink-0 font-semibold text-gray-800">
-                                                    {data.horas}h
-                                                </span>
-                                            </div>
-                                        ))}
+                                        {Object.keys(docente.asignaciones).length === 0 ? (
+                                            <p className="text-xs italic text-gray-500">
+                                                Sin horas asignadas todavía. Selecciona áreas en la distribución.
+                                            </p>
+                                        ) : (
+                                            Object.entries(docente.asignaciones).map(([area, data]) => (
+                                                <div key={area} className="flex items-start justify-between gap-2 text-xs">
+                                                    <span className="min-w-0 text-gray-700">
+                                                        <span className="font-semibold text-gray-900">{area}</span>
+                                                        <span className="font-medium text-gray-600"> · {data.grados.join(', ')}</span>
+                                                    </span>
+                                                    <span className="shrink-0 font-semibold text-gray-800">
+                                                        {data.horas}h
+                                                    </span>
+                                                </div>
+                                            ))
+                                        )}
                                     </div>
                                 </div>
                             );
